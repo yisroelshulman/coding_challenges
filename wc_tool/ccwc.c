@@ -9,18 +9,19 @@
 #define WC_WORD         1u << 2
 #define WC_CHAR         1u << 3
 
-FILE* input_stream;
+typedef struct {
+    int byte_count;
+    int line_count;
+    int word_count;
+    int char_count;
+    FILE* input_stream;
+} WCInfo;
 
-static long byte_count = 0;
-static long line_count = 0;
-static long word_count = 0;
-static long char_count = 0;
-
-static char next() {
-    char c = fgetc(input_stream);
-    if (c == '\n') line_count ++;
-    byte_count++;
-    char_count++;
+static char next(WCInfo* file) {
+    char c = fgetc(file->input_stream);
+    if (c == '\n') file->line_count ++;
+    file->byte_count++;
+    file->char_count++;
     return c;
 }
 
@@ -28,27 +29,26 @@ static bool is_whitespace(const char c) {
     return c == ' ' || c == '\n'  || c == '\t' || c == '\r';
 }
 
-static char consume_whitespace() {
-    char c = next();
-    while (is_whitespace(c)) c = next();
+static char consume_whitespace(WCInfo* file) {
+    char c = next(file);
+    while (is_whitespace(c)) c = next(file);
     return c;
 }
 
-static void wc_default() {
-
-    char c = consume_whitespace();
+static void wc_default(WCInfo* file) {
+    char c = consume_whitespace(file);
     while (c != EOF) {
         if (is_whitespace(c)) {
-            word_count++;
-            c = consume_whitespace();
+            file->word_count++;
+            c = consume_whitespace(file);
         } else {
-            c = next();
+            c = next(file);
         }
     }
     // EOF was added in next(), and is not considered.
-    char_count--;
-    byte_count--;
-    printf("bytes: %ld, lines: %ld, words: %ld, chars: %ld", byte_count, line_count, word_count, char_count);
+    file->char_count--;
+    file->byte_count--;
+    printf("bytes: %d, lines: %d, words: %d, chars: %d\n", file->byte_count, file->line_count, file->word_count, file->char_count);
 }
 
 static uint8_t set_flags(const uint8_t flag, const char* flags) {
@@ -96,20 +96,24 @@ int main(const int argc, const char* argv[]) {
                 printf("invalid flag [%s]\n", argv[i]);
                 return 1;
             }
+        } else {
+            WCInfo file = {
+                .byte_count = 0,
+                .line_count = 0,
+                .word_count = 0,
+                .char_count = 0,
+                .input_stream = fopen(argv[i], "r")
+            };
+            if (file.input_stream == NULL) {
+                printf("[%s] No such file or directory\n", argv[i]);
+            } else {
+                wc_default(&file);
+            }
         }
     }
     print_flags(flag);
 
-    if (argc == 2) {
-        input_stream = fopen(argv[1], "r");
-        if (input_stream == NULL) {
-            // error
-            return 1;
-        }
-    } else {
-        input_stream = stdin;
-    }
-
+    
     //wc_default();
     printf(" [%s]\n", argv[1]);
 
