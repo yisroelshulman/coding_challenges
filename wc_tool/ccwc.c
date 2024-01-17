@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 // bit flags
 #define WC_INVALID_FLAG 0u
@@ -85,24 +86,31 @@ static uint8_t set_flags(uint8_t flag, const char* flags) {
 
 static void print_result(const WCInfo* file, const uint8_t flags) {
     if (flags&WC_LINE) {
-        printf("\t%d", file->line_count);
+        printf("%8d ", file->line_count);
     }
     if (flags&WC_WORD) {
-        printf("\t%d", file->word_count);
+        printf("%8d ", file->word_count);
     }
     if (flags&WC_BYTES) {
-        printf("\t%d", file->byte_count);
+        printf("%8d ", file->byte_count);
     }
     if (flags&WC_CHAR) {
-        printf("\t%d", file->char_count);
+        printf("%8d ", file->char_count);
     }
-    printf("\n");
+}
+
+static uint8_t min(int x, int y) {
+    if (x < y) return x;
+    return y;
 }
 
 int main(const int argc, const char* argv[]) {
 
     uint8_t flags = WC_UNSET;
     uint8_t num_files = 0; // arbitraty max num files to 256
+    bool had_error = false;
+    uint8_t* indices = malloc(sizeof(uint8_t) * min(256, argc));
+    WCInfo* files = malloc(sizeof(WCInfo) * min(256, argc));
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -112,23 +120,40 @@ int main(const int argc, const char* argv[]) {
                 return 1;
             }
         } else {
-            num_files++;
+            indices[num_files] = i;
             FILE* stream = fopen(argv[i], "r");
             if (stream == NULL) {
                 printf("[%s] No such file or directory.\n", argv[i]);
+                had_error = true;
+                files[num_files] = init_wc_info(NULL);
             } else {
                 WCInfo file = init_wc_info(stream);
                 wc_default(&file);
                 file.input_stream = NULL;
                 fclose(stream);
+                files[num_files] = file;
             }
+            num_files++;
         }
     }
 
+    if (flags&WC_UNSET) flags = 0b111; // setting the proper bytes to 1 for the default setting
+
     if (num_files == 0) {
-        if (flags&WC_UNSET) flags = 0b111; // setting the proper bytes to 1
         WCInfo file = init_wc_info(stdin);
         wc_default(&file);
         print_result(&file, flags);
+        printf("\n");
+    } else {
+        for (int i = 0; i < num_files; i++) {
+            print_result(&files[i], flags);
+            printf("%s\n", argv[indices[i]]);
+        }
     }
+
+    free(indices);
+    free(files);
+    
+    if (had_error) return 1;
+    return 0;
 }
