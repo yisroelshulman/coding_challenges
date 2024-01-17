@@ -1,6 +1,6 @@
-#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 // bit flags
@@ -85,7 +85,7 @@ static uint8_t set_wc_flags(uint8_t flag, const char* flags) {
     if (flag&WC_UNSET) flag = 0;
     uint8_t current_flag = 0;
     int pos = 1;
-    char c = flags[pos++]; //first char is - so we start at index 1 
+    char c = flags[pos++]; //first char is - so we start at index 1
     while (c != '\0') {
         switch (c) {
             case 'c': current_flag = current_flag|WC_BYTES; break;
