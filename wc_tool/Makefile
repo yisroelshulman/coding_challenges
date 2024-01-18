@@ -8,7 +8,7 @@ all: ccwc.c
 	$(CC) $(CFLAGS) $<
 
 
-.PHONY:
+.PHONY: all memcheck clean
 
 memcheck:
 	valgrind -s --leak-check=full ./a.out test.txt 2>err.txt

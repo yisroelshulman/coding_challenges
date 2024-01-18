@@ -5,7 +5,7 @@
 
 // bit flags
 #define WC_INVALID_FLAG 0u
-#define WC_BYTES        1u << 0
+#define WC_BYTE         1u << 0
 #define WC_LINE         1u << 1
 #define WC_WORD         1u << 2
 #define WC_CHAR         1u << 3
@@ -88,10 +88,10 @@ static uint8_t set_wc_flags(uint8_t flag, const char* flags) {
     char c = flags[pos++]; //first char is - so we start at index 1
     while (c != '\0') {
         switch (c) {
-            case 'c': current_flag = current_flag|WC_BYTES; break;
-            case 'm': current_flag = current_flag|WC_CHAR;  break;
-            case 'l': current_flag = current_flag|WC_LINE;  break;
-            case 'w': current_flag = current_flag|WC_WORD;  break;
+            case 'c': current_flag = current_flag|WC_BYTE; break;
+            case 'm': current_flag = current_flag|WC_CHAR; break;
+            case 'l': current_flag = current_flag|WC_LINE; break;
+            case 'w': current_flag = current_flag|WC_WORD; break;
             default:
                 return WC_INVALID_FLAG;
         }
@@ -107,11 +107,11 @@ static void print_wc_result(const WCInfo* file, const uint8_t flags, const char*
     if (flags&WC_WORD) {
         printf("%8d ", file->word_count);
     }
-    if (flags&WC_BYTES) {
-        printf("%8d ", file->byte_count);
-    }
     if (flags&WC_CHAR) {
         printf("%8d ", file->char_count);
+    }
+    if (flags&WC_BYTE) {
+        printf("%8d ", file->byte_count);
     }
     printf("%s\n", file_name);
 }
@@ -123,7 +123,7 @@ static void print_wc_totals(const uint8_t flags) {
     if (flags&WC_WORD) {
         printf("%8lu ", total_words);
     }
-    if (flags&WC_BYTES) {
+    if (flags&WC_BYTE) {
         printf("%8lu ", total_bytes);
     }
     if (flags&WC_CHAR) {
