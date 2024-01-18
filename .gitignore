@@ -1,5 +1,7 @@
-wc_tool/fstat.txt
-wc_tool/man.txt
-
-
+# wc_tools
 wc_tool/a.out
+wc_tool/*.txt
+^wc_tool/test.txt
+
+# json_parser
+json_parser/a.out
