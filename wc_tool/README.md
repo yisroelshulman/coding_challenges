@@ -4,6 +4,10 @@
 A tool that mimics the built in Unix wc tool (slightly stripped).\
 Prints line, word, and byte count for each file, and a total if more than one file was specified.
 
+The coding Challenge prompt "[Write Your Own wc Tool][]".
+
+[Write Your Own wc Tool]: https://codingchallenges.fyi/challenges/challenge-wc
+
 ## Quick Start
 Download the ccwc.c file.
 Compile
@@ -26,7 +30,7 @@ Default
 ```c
 ./ccwc [file/directory]
 ```
-By default running the program without any flags will print the line, word, and byte count respectively. When there is more than one file in the arguments the tool will add the name of the file associated with the count on each line and print an additional line with the totals. When the is no file in the arguments it will read from standard in.
+By default running the program without any flags will print the line, word, and byte count respectively. When there is more than one file in the arguments the tool will add the name of the file associated with the count on each line and print an additional line with the totals. When there is no file in the arguments it will read from stdin.
 
 The flags that can be used to select which counts to print. The order is always: line, word, character, byte.
 * `-c` - to print the byte count
