@@ -11,12 +11,6 @@
 #define WC_CHAR         1u << 3
 #define WC_UNSET        1u << 4
 
-// totals are global
-static unsigned long total_bytes = 0;
-static unsigned long total_lines = 0;
-static unsigned long total_words = 0;
-static unsigned long total_chars = 0;
-
 typedef struct {
     bool error;
     unsigned int byte_count;
@@ -25,6 +19,13 @@ typedef struct {
     unsigned int char_count;
     FILE* input_stream;
 } WCInfo;
+
+typedef struct {
+    unsigned long byte_count;
+    unsigned long line_count;
+    unsigned long word_count;
+    unsigned long char_count;
+} WCTotal;
 
 // assigning stream is safe because it is either stdin or was checked for NULL before the call to
 // this function
@@ -44,12 +45,9 @@ static char wc_next(WCInfo* file) {
     char c = fgetc(file->input_stream);
     if (c == '\n') {
          file->line_count ++;
-         total_lines++;
     }
     file->byte_count++;
-    total_bytes++;
     file->char_count++;
-    total_chars++;
     return c;
 }
 
@@ -68,7 +66,6 @@ static void wc_counter(WCInfo* file) {
     while (c != EOF) {
         if (is_whitespace(c)) {
             file->word_count++;
-            total_words++;
             c = consume_wc_whitespaces(file);
         } else {
             c = wc_next(file);
@@ -76,9 +73,7 @@ static void wc_counter(WCInfo* file) {
     }
     // EOF was added in next(), and is not considered.
     file->char_count--;
-    total_chars--;
     file->byte_count--;
-    total_bytes--;
 }
 
 static uint8_t set_wc_flags(uint8_t flag, const char* flags) {
@@ -116,18 +111,18 @@ static void print_wc_result(const WCInfo* file, const uint8_t flags, const char*
     printf("%s\n", file_name);
 }
 
-static void print_wc_totals(const uint8_t flags) {
+static void print_wc_totals(const WCTotal* totals, const uint8_t flags) {
     if (flags&WC_LINE) {
-        printf("%8lu ", total_lines);
+        printf("%8lu ", totals->line_count);
     }
     if (flags&WC_WORD) {
-        printf("%8lu ", total_words);
+        printf("%8lu ", totals->word_count);
     }
     if (flags&WC_BYTE) {
-        printf("%8lu ", total_bytes);
+        printf("%8lu ", totals->byte_count);
     }
     if (flags&WC_CHAR) {
-        printf("%8lu ", total_chars);
+        printf("%8lu ", totals->char_count);
     }
     printf("total\n");
 }
@@ -143,6 +138,7 @@ int main(const int argc, const char* argv[]) {
     uint8_t num_files = 0; // arbitraty max num files to 256
     uint8_t* indices = malloc(sizeof(uint8_t) * min(256, argc));
     WCInfo* files = malloc(sizeof(WCInfo) * min(256, argc));
+    WCTotal totals =  {0, 0, 0, 0};
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -164,6 +160,10 @@ int main(const int argc, const char* argv[]) {
             } else {
                 files[num_files] = init_wc_info(stream, false);
                 wc_counter(&files[num_files]);
+                totals.byte_count += files[num_files].byte_count;
+                totals.line_count += files[num_files].line_count;
+                totals.word_count += files[num_files].word_count;
+                totals.char_count += files[num_files].char_count;
                 files[num_files].input_stream = NULL; // overcautious
                 fclose(stream);
             }
@@ -196,7 +196,7 @@ int main(const int argc, const char* argv[]) {
                     print_wc_result(&files[i], flags, argv[indices[i]]);
                 }
             }
-            print_wc_totals(flags);
+            print_wc_totals(&totals, flags);
             break;
         }
     }

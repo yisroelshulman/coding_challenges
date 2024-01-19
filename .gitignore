@@ -1,5 +1,6 @@
 # wc_tools
 wc_tool/a.out
+wc_tool/ccwc
 wc_tool/*.txt
 ^wc_tool/test.txt
 

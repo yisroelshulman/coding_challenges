@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -g -Wall
 
 all: ccwc.c
-	$(CC) $(CFLAGS) $<
+	$(CC) $(CFLAGS) $< -o ccwc
 
 
 .PHONY: all memcheck clean
@@ -15,3 +15,4 @@ memcheck:
 
 clean:
 	-rm -f a.out
+	-rm -f ccwc
