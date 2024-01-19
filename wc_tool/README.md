@@ -4,14 +4,14 @@
 A tool that mimics the built in Unix wc tool (slightly stripped).\
 Prints line, word, and byte count for each file, and a total if more than one file was specified.
 
-The coding Challenge prompt "[Write Your Own wc Tool][]".
+The coding Challenge prompt [Write Your Own wc Tool][].
 
 [Write Your Own wc Tool]: https://codingchallenges.fyi/challenges/challenge-wc
 
 ## Quick Start
-Download the ccwc.c file.
-Compile
+Download the ccwc.c file from the repository.
 
+Compile
 ```c
 // compiling using gcc
 gcc -g -Wall ccwc.c -o ccwc
