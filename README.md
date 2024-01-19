@@ -2,6 +2,7 @@
 
 ## Description
 This repository contains my solutions for the [coding challenges][] problems.
+
 [coding challenges]: https://codingchallenges.fyi/challenges/intro
 
 The coding challenges problems are released weekly by [John Crickett](https://www.linkedin.com/in/johncrickett/).
