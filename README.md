@@ -12,4 +12,4 @@ Open the link from the list below and follow the instructions from the README fi
 
 ## List of the Challenges I Worked on
 - [wc Tool](https://github.com/yisroelshulman/coding_challenges/tree/main/wc_tool)
-- [JSON Parser](https://github.com/yisroelshulman/coding_challenges/tree/main/json_parser) []
+- [JSON Parser](https://github.com/yisroelshulman/coding_challenges/tree/main/json_parser) [in progress]
