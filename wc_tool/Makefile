@@ -11,7 +11,7 @@ all: ccwc.c
 .PHONY: all memcheck clean
 
 memcheck:
-	valgrind -s --leak-check=full ./a.out test.txt 2>err.txt
+	valgrind -s --leak-check=full ./ccwc test.txt 2>err.txt
 
 clean:
 	-rm -f a.out

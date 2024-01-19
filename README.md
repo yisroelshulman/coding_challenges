@@ -11,5 +11,5 @@ The coding challenges problems are released weekly by [John Crickett](https://ww
 Open the link from the list below and follow the instructions from the README file.
 
 ## List of the Challenges I Worked on
-- [wc_tool](https://github.com/yisroelshulman/coding_challenges/tree/main/wc_tool)
-- [json_parser](https://github.com/yisroelshulman/coding_challenges/tree/main/json_parser) [in progress]
+- [wc Tool](https://github.com/yisroelshulman/coding_challenges/tree/main/wc_tool)
+- [JSON Parser](https://github.com/yisroelshulman/coding_challenges/tree/main/json_parser) []
