@@ -10,155 +10,151 @@
 #define WC_WORD         1u << 2
 #define WC_CHAR         1u << 3
 #define WC_UNSET        1u << 4
+#define WC_DEFAULT      0b111
 
-typedef struct {
+typedef struct
+{
     bool error;
-    unsigned int byte_count;
     unsigned int line_count;
     unsigned int word_count;
     unsigned int char_count;
+    unsigned int byte_count;
     FILE* input_stream;
-} WCInfo;
+} WCFile;
 
-typedef struct {
-    unsigned long byte_count;
+typedef struct
+{
     unsigned long line_count;
     unsigned long word_count;
     unsigned long char_count;
+    unsigned long byte_count;
 } WCTotal;
 
-// assigning stream is safe because it is either stdin or was checked for NULL before the call to
-// this function
-static WCInfo init_wc_info(FILE* stream, const bool error) {
-    WCInfo file = {
-        .error = error,
-        .byte_count = 0,
-        .line_count = 0,
-        .char_count = 0,
-        .word_count = 0,
-        .input_stream = stream
-    };
-    return file;
-}
-
-static char wc_next(WCInfo* file) {
+static char wc_next(WCFile* file)
+{
     char c = fgetc(file->input_stream);
-    if (c == '\n') {
-         file->line_count ++;
-    }
+    if (c == '\n') { file->line_count ++; }
     file->byte_count++;
     file->char_count++;
     return c;
 }
 
-static bool is_whitespace(const char c) {
+static bool is_whitespace(const char c)
+{
     return c == ' ' || c == '\n'  || c == '\t' || c == '\r';
 }
 
-static char consume_wc_whitespaces(WCInfo* file) {
+static char consume_wc_whitespaces(WCFile* file)
+{
     char c = wc_next(file);
-    while (is_whitespace(c)) c = wc_next(file);
+    while (is_whitespace(c)) { c = wc_next(file); }
     return c;
 }
 
-static void wc_counter(WCInfo* file) {
+static void wc_counter(WCFile* file)
+{
     char c = consume_wc_whitespaces(file);
-    while (c != EOF) {
-        if (is_whitespace(c)) {
+    while (c != EOF)
+    {
+        if (is_whitespace(c))
+        {
             file->word_count++;
             c = consume_wc_whitespaces(file);
-        } else {
-            c = wc_next(file);
         }
+        else { c = wc_next(file); }
     }
-    // EOF was added in next(), and is not considered.
+    // EOF was added in next(), and is not considered a byte or char.
     file->char_count--;
     file->byte_count--;
 }
 
-static uint8_t set_wc_flags(uint8_t flag, const char* flags) {
-    if (flag&WC_UNSET) flag = 0;
-    uint8_t current_flag = 0;
+static uint8_t set_wc_flags(const uint8_t flag, const char* flags)
+{
+    uint8_t new_flag = flag;
     int pos = 1;
-    char c = flags[pos++]; //first char is - so we start at index 1
-    while (c != '\0') {
-        switch (c) {
-            case 'c': current_flag = current_flag|WC_BYTE; break;
-            case 'm': current_flag = current_flag|WC_CHAR; break;
-            case 'l': current_flag = current_flag|WC_LINE; break;
-            case 'w': current_flag = current_flag|WC_WORD; break;
-            default:
-                return WC_INVALID_FLAG;
+    char c = flags[pos++]; //first char is '-' so we start at index 1
+    while (c != '\0')
+    {
+        switch (c)
+        {
+            case 'c': new_flag |= WC_BYTE; break;
+            case 'm': new_flag |= WC_CHAR; break;
+            case 'l': new_flag |= WC_LINE; break;
+            case 'w': new_flag |= WC_WORD; break;
+            default: return WC_INVALID_FLAG;
         }
         c = flags[pos++];
     }
-    return flag|current_flag;
+    return new_flag;
 }
 
-static void print_wc_result(const WCInfo* file, const uint8_t flags, const char* file_name) {
-    if (flags&WC_LINE) {
-        printf("%8d ", file->line_count);
-    }
-    if (flags&WC_WORD) {
-        printf("%8d ", file->word_count);
-    }
-    if (flags&WC_CHAR) {
-        printf("%8d ", file->char_count);
-    }
-    if (flags&WC_BYTE) {
-        printf("%8d ", file->byte_count);
-    }
+static void print_wc_result(const WCFile* file, const uint8_t flags, const char* file_name)
+{
+    if (flags&WC_LINE) { printf("%7d ", file->line_count); }
+    if (flags&WC_WORD) { printf("%7d ", file->word_count); }
+    if (flags&WC_CHAR) { printf("%7d ", file->char_count); }
+    if (flags&WC_BYTE) { printf("%7d ", file->byte_count); }
     printf("%s\n", file_name);
 }
 
-static void print_wc_totals(const WCTotal* totals, const uint8_t flags) {
-    if (flags&WC_LINE) {
-        printf("%8lu ", totals->line_count);
-    }
-    if (flags&WC_WORD) {
-        printf("%8lu ", totals->word_count);
-    }
-    if (flags&WC_BYTE) {
-        printf("%8lu ", totals->byte_count);
-    }
-    if (flags&WC_CHAR) {
-        printf("%8lu ", totals->char_count);
-    }
+static void print_wc_totals(const WCTotal* totals, const uint8_t flags)
+{
+    if (flags&WC_LINE) { printf("%7lu ", totals->line_count); }
+    if (flags&WC_WORD) { printf("%7lu ", totals->word_count); }
+    if (flags&WC_BYTE) { printf("%7lu ", totals->byte_count); }
+    if (flags&WC_CHAR) { printf("%7lu ", totals->char_count); }
     printf("total\n");
 }
 
-static uint8_t min(const int x, const int y) {
+static uint8_t min(const int x, const int y)
+{
     if (x < y) return x;
     return y;
 }
 
-int main(const int argc, const char* argv[]) {
+int main(const int argc, const char* argv[])
+{
     bool had_error = false;
     uint8_t flags = WC_UNSET;
     uint8_t num_files = 0; // arbitraty max num files to 256
     uint8_t* indices = malloc(sizeof(uint8_t) * min(256, argc));
-    WCInfo* files = malloc(sizeof(WCInfo) * min(256, argc));
-    WCTotal totals =  {0, 0, 0, 0};
+    WCFile* files = malloc(sizeof(WCFile) * min(256, argc));
+    if (indices == NULL || files == NULL)
+    {
+        fprintf(stderr, "malloc failed\n");
+        return 1;
+    }
+    WCTotal totals = {0, 0, 0, 0};
 
-    for (int i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
+    for (int i = 1; i < argc; i++)
+    {
+        if (argv[i][0] == '-')
+        {
+            if (flags&WC_UNSET) { flags = 0; }
             flags = set_wc_flags(flags, argv[i]);
-            if (flags == WC_INVALID_FLAG) {
+            if (flags == WC_INVALID_FLAG)
+            {
                 printf("invalid flag [%s]\n", argv[i]);
                 return 1;
             }
-        } else {
-            if (num_files + 1 == 256) {
+        }
+        else
+        {
+            if (num_files + 1 == 256)
+            {
                 printf("Too many files\n");
                 return 1;
             }
             indices[num_files] = i;
             FILE* stream = fopen(argv[i], "r");
-            if (stream == NULL) {
+            if (stream == NULL)
+            {
                 had_error = true;
-                files[num_files] = init_wc_info(NULL, true);
-            } else {
-                files[num_files] = init_wc_info(stream, false);
+                files[num_files] = (WCFile){true, 0, 0, 0, 0, NULL};
+            }
+            else
+            {
+                files[num_files] = (WCFile){false, 0, 0, 0, 0, stream};
                 wc_counter(&files[num_files]);
                 totals.byte_count += files[num_files].byte_count;
                 totals.line_count += files[num_files].line_count;
@@ -171,30 +167,29 @@ int main(const int argc, const char* argv[]) {
         }
     }
 
-    if (flags&WC_UNSET) flags = 0b111; // setting the proper bytes to 1 for the default setting
+    if (flags&WC_UNSET) { flags = WC_DEFAULT; } // setting the proper bytes to 1 for the default setting
 
-    switch (num_files) {
-        case 0: {
-            WCInfo file = init_wc_info(stdin, false);
+    switch (num_files)
+    {
+        case 0:
+        {
+            WCFile file = (WCFile){false, 0, 0, 0, 0, stdin};
             wc_counter(&file);
             print_wc_result(&file, flags, "");
             break;
         }
-        case 1: {
-            if (files[0].error) {
-                printf("[%s] No such file or directory.\n", argv[indices[0]]);
-            } else {
-                print_wc_result(&files[0], flags, argv[indices[0]]);
-            }
+        case 1:
+        {
+            if (files[0].error) { printf("[%s] No such file or directory.\n", argv[indices[0]]); }
+            else { print_wc_result(&files[0], flags, argv[indices[0]]); }
             break;
         }
-        default: {
-            for (int i = 0; i < num_files; i++) {
-                if (files[i].error) {
-                    printf("[%s] No such file or directory.\n", argv[indices[i]]);
-                } else {
-                    print_wc_result(&files[i], flags, argv[indices[i]]);
-                }
+        default:
+        {
+            for (int i = 0; i < num_files; i++)
+            {
+                if (files[i].error) { printf("[%s] No such file or directory.\n", argv[indices[i]]); }
+                else { print_wc_result(&files[i], flags, argv[indices[i]]); }
             }
             print_wc_totals(&totals, flags);
             break;
