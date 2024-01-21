@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// bit flags
+/*the flags to determine what should get printed*/
 #define WC_INVALID_FLAG 0u
 #define WC_BYTE         1u << 0
 #define WC_LINE         1u << 1
@@ -12,6 +12,7 @@
 #define WC_UNSET        1u << 4
 #define WC_DEFAULT      0b111
 
+/*the struct that holds the files info*/
 typedef struct
 {
     bool error;
@@ -19,9 +20,9 @@ typedef struct
     unsigned int word_count;
     unsigned int char_count;
     unsigned int byte_count;
-    FILE* input_stream;
 } WCFile;
 
+/*the struct for the totals*/
 typedef struct
 {
     unsigned long line_count;
@@ -30,42 +31,34 @@ typedef struct
     unsigned long byte_count;
 } WCTotal;
 
-static char wc_next(WCFile* file)
-{
-    char c = fgetc(file->input_stream);
-    if (c == '\n') { file->line_count ++; }
-    file->byte_count++;
-    file->char_count++;
-    return c;
-}
-
 static bool is_whitespace(const char c)
 {
     return c == ' ' || c == '\n'  || c == '\t' || c == '\r';
 }
 
-static char consume_wc_whitespaces(WCFile* file)
+static WCFile wc_file(FILE* input_stream)
 {
-    char c = wc_next(file);
-    while (is_whitespace(c)) { c = wc_next(file); }
-    return c;
-}
-
-static void wc_counter(WCFile* file)
-{
-    char c = consume_wc_whitespaces(file);
+    WCFile file = {false, 0, 0, 0, 0};
+    bool in_word = false;
+    char c = fgetc(input_stream);
     while (c != EOF)
     {
+        file.byte_count++;
+        file.char_count++;
+        if (c == '\n') { file.line_count++; }
         if (is_whitespace(c))
         {
-            file->word_count++;
-            c = consume_wc_whitespaces(file);
+            if (in_word)
+            {
+                file.word_count++;
+                in_word = false;
+            }
         }
-        else { c = wc_next(file); }
+        else { in_word = true; }
+
+        c = fgetc(input_stream);
     }
-    // EOF was added in next(), and is not considered a byte or char.
-    file->char_count--;
-    file->byte_count--;
+    return file;
 }
 
 static uint8_t set_wc_flags(const uint8_t flag, const char* flags)
@@ -150,17 +143,15 @@ int main(const int argc, const char* argv[])
             if (stream == NULL)
             {
                 had_error = true;
-                files[num_files] = (WCFile){true, 0, 0, 0, 0, NULL};
+                files[num_files] = (WCFile){true, 0, 0, 0, 0};
             }
             else
             {
-                files[num_files] = (WCFile){false, 0, 0, 0, 0, stream};
-                wc_counter(&files[num_files]);
+                files[num_files] = wc_file(stream);
                 totals.byte_count += files[num_files].byte_count;
                 totals.line_count += files[num_files].line_count;
                 totals.word_count += files[num_files].word_count;
                 totals.char_count += files[num_files].char_count;
-                files[num_files].input_stream = NULL; // overcautious
                 fclose(stream);
             }
             num_files++;
@@ -173,8 +164,7 @@ int main(const int argc, const char* argv[])
     {
         case 0:
         {
-            WCFile file = (WCFile){false, 0, 0, 0, 0, stdin};
-            wc_counter(&file);
+            WCFile file = wc_file(stdin);
             print_wc_result(&file, flags, "");
             break;
         }
