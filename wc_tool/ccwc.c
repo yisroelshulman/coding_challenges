@@ -36,6 +36,7 @@ static bool is_whitespace(const char c)
     return c == ' ' || c == '\n'  || c == '\t' || c == '\r';
 }
 
+/*scans a file in a single pass and records the counts then returns the WCFile with the scan info*/
 static WCFile wc_file(FILE* input_stream)
 {
     WCFile file = {false, 0, 0, 0, 0};
@@ -61,6 +62,7 @@ static WCFile wc_file(FILE* input_stream)
     return file;
 }
 
+/*sets the flags, dupplicate flags have no side effects*/
 static uint8_t set_wc_flags(const uint8_t flag, const char* flags)
 {
     uint8_t new_flag = flag;
@@ -70,10 +72,10 @@ static uint8_t set_wc_flags(const uint8_t flag, const char* flags)
     {
         switch (c)
         {
-            case 'c': new_flag |= WC_BYTE; break;
-            case 'm': new_flag |= WC_CHAR; break;
-            case 'l': new_flag |= WC_LINE; break;
-            case 'w': new_flag |= WC_WORD; break;
+            case 'c': { new_flag |= WC_BYTE; break; }
+            case 'm': { new_flag |= WC_CHAR; break; }
+            case 'l': { new_flag |= WC_LINE; break; }
+            case 'w': { new_flag |= WC_WORD; break; }
             default: return WC_INVALID_FLAG;
         }
         c = flags[pos++];
@@ -101,7 +103,7 @@ static void print_wc_totals(const WCTotal* totals, const uint8_t flags)
 
 static uint8_t min(const int x, const int y)
 {
-    if (x < y) return x;
+    if (x < y) { return x; }
     return y;
 }
 
@@ -188,6 +190,6 @@ int main(const int argc, const char* argv[])
 
     free(indices); // not needed
     free(files); // not needed
-    if (had_error) return 1;
+    if (had_error) { return 1; }
     return 0;
 }
