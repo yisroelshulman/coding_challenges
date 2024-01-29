@@ -4,8 +4,12 @@ SHELL = /bin/sh
 CC = gcc
 CFLAGS = -g -Wall
 
-all: ccwc.c
-	$(CC) $(CFLAGS) $< -o ccwc
+TARGET = ccwc
+
+all: $(TARGET)
+
+$(TARGET): $(TARGET).c
+	$(CC) $(CFLAGS) $< -o $(TARGET)
 
 
 .PHONY: all memcheck clean
