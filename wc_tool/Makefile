@@ -1,5 +1,4 @@
-#shell
-SHELL = /bin/sh
+#!/bin/sh
 
 CC = gcc
 CFLAGS = -g -Wall
