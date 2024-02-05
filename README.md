@@ -1,4 +1,4 @@
-# coding_challenges
+# **_Coding Challenges_**
 
 ## Description
 This repository contains my solutions for the [coding challenges][] problems.
