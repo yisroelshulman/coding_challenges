@@ -1,4 +1,5 @@
-# wc tool (ccwc)
+
+# **wc tool (ccwc)**
 
 ## Description
 A tool that mimics the built in Unix wc tool (slightly stripped).\
