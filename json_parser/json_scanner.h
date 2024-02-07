@@ -1,7 +1,8 @@
 #ifndef JSON_SCANNER_H
 #define JSON_SCANNER_H
 
-typedef enum {
+typedef enum
+{
     // symbols
     TOKEN_BEGIN_OBJECT,
     TOKEN_END_OBJECT,
@@ -24,7 +25,8 @@ typedef enum {
     TOKEN_ERROR
 } TokenType;
 
-typedef struct {
+typedef struct
+{
     const TokenType type;
     const char* start;
     const unsigned int len;
