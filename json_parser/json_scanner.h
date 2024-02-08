@@ -1,6 +1,7 @@
 #ifndef JSON_SCANNER_H
 #define JSON_SCANNER_H
 
+/*All the tokens for parsing a JSON file*/
 typedef enum
 {
     // symbols
@@ -23,14 +24,18 @@ typedef enum
     TOKEN_ERROR
 } TokenType;
 
+/*The token information*/
 typedef struct
 {
     TokenType type;
-    const char* start;
+    const char *start;
     unsigned int len;
+    const char *message;
+    unsigned int msg_len;
     unsigned int line;
 } Token;
 
+/*function prototypes for interfacing with the json_scanner*/
 void init_scanner(const char *source);
 Token scan_token();
 
