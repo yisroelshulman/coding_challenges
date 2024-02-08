@@ -10,8 +10,6 @@ typedef enum
     TOKEN_END_ARRAY,
     TOKEN_NAME_SEPARATOR,
     TOKEN_VALUE_SEPARATOR,
-    TOKEN_MINUS,
-    TOKEN_QUOTATION,
 
     // literals
     TOKEN_STRING,
@@ -27,10 +25,13 @@ typedef enum
 
 typedef struct
 {
-    const TokenType type;
+    TokenType type;
     const char* start;
-    const unsigned int len;
-    const unsigned int line;
+    unsigned int len;
+    unsigned int line;
 } Token;
+
+void init_scanner(const char *source);
+Token scan_token();
 
 #endif
