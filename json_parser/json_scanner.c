@@ -138,7 +138,7 @@ static Token number(const char c)
     }
     if (is_exponent(peek())) // has exponent
     {
-        if (!exponent()) { return make_token(TOKEN_ERROR, "need at least one digit for fraction."); }
+        if (!exponent()) { return make_token(TOKEN_ERROR, "need at least one digit for exponent."); }
     }
     return make_token(TOKEN_NUMBER, "");
 }
