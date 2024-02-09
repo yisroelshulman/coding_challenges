@@ -2,8 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #include "json_scanner.h"
 
+/********************************************************************************
+ * The Scanner keeps track of which character in the JSON document the scanner
+ * is currently on and on which line.
+ ********************************************************************************/
 typedef struct
 {
     const char *start;
@@ -11,8 +17,10 @@ typedef struct
     unsigned int line;
 } Scanner;
 
+/*global scanner for the JSON documnet*/
 Scanner scanner;
 
+/*initializes the scanner to the start of the JSON document and the first line*/
 void init_scanner(const char *source)
 {
     scanner.start = source;
@@ -30,17 +38,20 @@ static const bool is_at_end()
     return *scanner.current == '\0';
 }
 
+/*advances the scanner one char and return the previous char*/
 static const char advance()
 {
     scanner.current++;
     return scanner.current[-1];
 }
 
+/*digits = [0 - 9]*/
 static const bool is_digit(const char c)
 {
     return c >= '0' && c <= '9';
 }
 
+/* hex digits = [0 - F] case insensitive*/
 static const bool is_hex(const char c)
 {
     return is_digit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
@@ -56,6 +67,7 @@ static const bool is_alpha(const char c)
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
+/*whitespaces = newline, tab, space, and return*/
 static void consume_whitespaces()
 {
     for (;;)
@@ -74,71 +86,103 @@ static void consume_whitespaces()
     }
 }
 
-static Token make_token(const TokenType type)
+/********************************************************************************
+ * creates a token with the information from the scanner. If the token is an
+ * error token the error message is sent as a parameter. This is so the scanner
+ * can also highlight the code snippet.
+ ********************************************************************************/
+static Token make_token(const TokenType type, const char *message)
 {
     Token token = {
         .type = type,
         .start = scanner.start,
         .len = scanner.current - scanner.start,
+        .message = message,
+        .msg_len = strlen(message),
         .line = scanner.line
     };
     return token;
 }
 
-static Token error_token(const char *message)
+/*fraction = .digit *(digit)*/
+static const bool fraction()
 {
-    Token token = {
-        .type = TOKEN_ERROR,
-        .start = message,
-        .len = strlen(message),
-        .line = scanner.line,
-    };
-    return token;
+    advance();
+    if (!is_digit(peek())) { return false; }
+    while (is_digit(peek())) { advance(); }
+    return true;
 }
 
+/*exponent = e|E (+|-) digit *(digit)*/
+static const bool exponent()
+{
+    advance();
+    if (peek() == '-' || peek() == '+') { advance(); }
+    if (!is_digit(peek())) { return false; }
+    while (is_digit(peek())) { advance(); }
+    return true;
+}
+
+/********************************************************************************
+ * number = 0|[1 - 9] *(digit) with optional fraction and/or optional exponent
+ * fraction = .digit *(digit)
+ * exponent =  e|E (+|-) difit *(digit)
+ ********************************************************************************/
 static Token number(const char c)
 {
-    if (c == '0' && is_digit(peek())) return error_token("Whole part of number can't have leading zeroes.");
-    while (is_digit(peek())) advance();
-    if (peek() == '.')
+    if (c == '0' && is_digit(peek())) { return make_token(TOKEN_ERROR, "Whole part of number can't have leading zeroes."); }
+    while (is_digit(peek())) { advance(); }
+    if (peek() == '.') // has fraction
     {
-        advance();
-        if (!is_digit(peek())) return error_token("need at least one digit for fraction.");
-        while (is_digit(peek())) advance();
+        if (!fraction()) { return make_token(TOKEN_ERROR, "need at least one digit for fraction."); }
     }
-    if (is_exponent(peek()))
+    if (is_exponent(peek())) // has exponent
     {
-        advance();
-        if (peek() == '-' || peek() == '+') advance();
-        if (!is_digit(peek())) return error_token("need at least one digit for exponent.");
-        while (is_digit(peek())) advance();
+        if (!exponent()) { return make_token(TOKEN_ERROR, "need at least one digit for fraction."); }
     }
-    return make_token(TOKEN_NUMBER);
+    return make_token(TOKEN_NUMBER, "");
 }
 
-static Token negative_number(const char c)
+/********************************************************************************
+ * negative number = - number
+ * number = 0|[1 - 9] *(digit) with optional fraction and/or optional exponent
+ * fraction = .digit *(digit)
+ * exponent =  e|E (+|-) digit *(digit)
+ ********************************************************************************/
+static Token negative_number()
 {
-    if (is_digit(c)) return number(c);
-    return error_token("Not a valid digit.");
+    if (is_digit(peek())) return number(advance());
+    return make_token(TOKEN_ERROR, "Negative witout a number.");
 }
 
 static const bool match(const int start, const char* rest, const int len)
 {
-    return ((scanner.current - scanner.start) == (start + len)) && memcmp(scanner.start + start, rest, len);
+    return ((scanner.current - scanner.start) == (start + len)) && memcmp(scanner.start + start, rest, len) == 0;
 }
 
+/*keywords = false, true, and null*/
 static Token keyword()
 {
-    while (is_alpha(peek())) advance();
+    while (is_alpha(peek())) advance(); // advance until a non-letter is reached
     switch (scanner.start[0])
     {
-        case 'f': if (match(1, "alse", 4)) return make_token(TOKEN_FALSE);
-        case 't': if (match(1, "rue", 3)) return make_token(TOKEN_TRUE);
-        case 'n': if (match(1, "ull", 3)) return make_token(TOKEN_NULL);
+        case 'f':
+            if (match(1, "alse", 4)) { return make_token(TOKEN_FALSE, ""); }
+            break;
+        case 't':
+            if (match(1, "rue", 3)) { return make_token(TOKEN_TRUE, ""); }
+            break;
+        case 'n':
+        if (match(1, "ull", 3)) { return make_token(TOKEN_NULL, ""); }
+        break;
     }
-    return error_token("Invalid keyword.");
+    return make_token(TOKEN_ERROR, "Invalid keyword.");
 }
 
+/********************************************************************************
+ * escaped = ", \, /, b, f, n, r, t, and uXXXX where x is a hex digit. This
+ * allows unicode characters to be entered by their hex value.
+ ********************************************************************************/
 static const bool escaped()
 {
     switch (peek())
@@ -156,47 +200,60 @@ static const bool escaped()
             for (int i = 0; i < 4; i++)
             {
                 advance();
-                if (!is_hex(peek())) return false;
+                if (!is_hex(peek())) { return false; }
             }
             return true;
     }
     return false;
 }
 
+/********************************************************************************
+ * string = " *(characters|\escaped) "
+ * characters = unicode characters >= 0x20 excluding the \ and " characters.
+ * escaped = ", \, /, b, f, n, r, t, and uXXXX where x is a hex digit. This
+ * allows unicode characters to be entered by their hex value.
+ ********************************************************************************/
 static Token string()
 {
     while (!(peek() == '"') && !(is_at_end())) {
         if (peek() == '\\') {
             advance();
-            if (!escaped()) return error_token("Invalid escaped character.");
+            if (!escaped()) { return make_token(TOKEN_ERROR, "Invalid escaped character."); }
         }
         advance();
     }
-    if (is_at_end()) return error_token("Reached end of file withought a string terminator.");
+    if (is_at_end()) { return make_token(TOKEN_ERROR, "Reached end of file without a string terminator."); }
     advance(); // move past the closing '"'
-    return make_token(TOKEN_STRING);
+    return make_token(TOKEN_STRING, "");
 }
 
+/********************************************************************************
+ * scans a single token and creates a token struct to return to the caller
+ * There are 13 tokens types that can be created.
+ * Each token holds the information of where in the document the tokens lexeme
+ * is and the length. If there was an error the token also contains a message
+ * related to the error.
+ ********************************************************************************/
 Token scan_token()
 {
     consume_whitespaces();
-    if (is_at_end()) return make_token(TOKEN_EOF);
+    if (is_at_end()) { return make_token(TOKEN_EOF, ""); }
     scanner.start = scanner.current;
     const char c = advance();
 
-    if (is_digit(c)) return number(c);
-    if (is_alpha(c)) return keyword();
+    if (is_digit(c)) { return number(c); }
+    if (is_alpha(c)) { return keyword(); }
 
     switch (c)
     {
-        case '{': return make_token(TOKEN_BEGIN_OBJECT);
-        case '}': return make_token(TOKEN_END_OBJECT);
-        case '[': return make_token(TOKEN_BEGIN_ARRAY);
-        case ']': return make_token(TOKEN_END_ARRAY);
-        case ':': return make_token(TOKEN_NAME_SEPARATOR);
-        case ',': return make_token(TOKEN_VALUE_SEPARATOR);
+        case '{': return make_token(TOKEN_BEGIN_OBJECT, "");
+        case '}': return make_token(TOKEN_END_OBJECT, "");
+        case '[': return make_token(TOKEN_BEGIN_ARRAY, "");
+        case ']': return make_token(TOKEN_END_ARRAY, "");
+        case ':': return make_token(TOKEN_NAME_SEPARATOR, "");
+        case ',': return make_token(TOKEN_VALUE_SEPARATOR, "");
         case '-': return negative_number(c);
         case '"': return string();
     }
-    return error_token("Unrecognized character.");
+    return make_token(TOKEN_ERROR, "Unrecognized character.");
 }
