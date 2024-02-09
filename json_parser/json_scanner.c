@@ -216,6 +216,7 @@ static const bool escaped()
 static Token string()
 {
     while (!(peek() == '"') && !(is_at_end())) {
+        if (peek() < 32) { return make_token(TOKEN_ERROR, "Not a valid character in string."); }
         if (peek() == '\\') {
             advance();
             if (!escaped()) { return make_token(TOKEN_ERROR, "Invalid escaped character."); }
